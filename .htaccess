@@ -1,1 +1,9 @@
-# TODO: main rewrite rules
+RewriteEngine On
+
+# Если файл/папка существует — отдаём напрямую
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Все остальные запросы -> index.php
+RewriteRule ^ index.php [L]
