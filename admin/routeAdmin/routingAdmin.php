@@ -72,6 +72,12 @@ elseif ($path == 'genreAddResult') {
 elseif ($path == 'genreDelete' && isset($_GET['id'])) {
     $response = controllerAdminUsers::genreDelete((int)$_GET['id']);
 }
+elseif ($path == 'userDelete' && isset($_GET['id'])) {
+    $response = controllerAdminUsers::userDeleteForm((int)$_GET['id']);
+}
+elseif ($path == 'userDeleteResult' && isset($_GET['id'])) {
+    $response = controllerAdminUsers::userDeleteResult((int)$_GET['id']);
+}
 
 else {
     $response = controllerAdmin::error404();

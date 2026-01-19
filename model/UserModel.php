@@ -87,9 +87,11 @@ class UserModel extends BaseModel
 
         if (!password_verify($pass, $hash)) return false;
 
-        $_SESSION['user_id'] = (int)$user['id'];
-        $_SESSION['login']   = (string)$user['login'];
-        $_SESSION['role']    = (string)$user['role'];
+        $_SESSION['user_id']   = (int)$user['id'];
+        $_SESSION['login']     = (string)$user['login'];
+        $_SESSION['role']      = (string)$user['role'];
+        $_SESSION['is_admin']  = ((string)$user['role'] === 'admin');
+        $_SESSION['sessionId'] = session_id();
 
         return true;
     }

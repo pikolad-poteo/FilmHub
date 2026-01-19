@@ -17,9 +17,15 @@ class controllerAdmin
         }
     }
 
-    public static function formLoginSite(): void {
-        self::view('formLogin.php');
+    public static function formLoginSite() {
+        if (!empty($_SESSION['is_admin'])) {
+            header("Location: dashboard");
+            exit;
+        }
+        include_once('viewAdmin/formLogin.php');
     }
+
+
 
     public static function loginAction(): void {
         $ok = modelAdmin::userAuthentication();

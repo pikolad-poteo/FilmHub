@@ -4,6 +4,7 @@ $pageTitle = 'Вход';
 ob_start();
 ?>
 <h1>Вход</h1>
+<p><a href="index.php">← На главную</a></p>
 
 <form method="post" action="login">
     <div>
