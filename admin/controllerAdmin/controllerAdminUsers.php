@@ -59,9 +59,13 @@ class controllerAdminUsers
         self::view('ratingsList.php', compact('arr'));
     }
 
+    /**
+     * ✅ GENRES
+     * Теперь movies_count приходит из modelAdminGenres::getAllGenres()
+     */
     public static function genresList(): void {
         self::requireAdmin();
-        $arr = modelAdminGenres::getAllGenres();
+        $arr = modelAdminGenres::getAllGenres(); // <-- ВАЖНО: вместо getAllGenresWithMoviesCount()
         self::view('genresList.php', compact('arr'));
     }
 
@@ -77,7 +81,17 @@ class controllerAdminUsers
         self::redirect('genresAdmin');
     }
 
-        public static function userDeleteForm(int $id): void
+    public static function genreDelete(int $id): void {
+        self::requireAdmin();
+        $ok = modelAdminGenres::deleteGenre($id);
+        if (!$ok) $_SESSION['errorString'] = 'Не удалось удалить жанр.';
+        self::redirect('genresAdmin');
+    }
+
+    /**
+     * USERS DELETE
+     */
+    public static function userDeleteForm(int $id): void
     {
         self::requireAdmin();
 
@@ -112,13 +126,5 @@ class controllerAdminUsers
         }
 
         self::redirect('usersAdmin');
-    }
-
-
-    public static function genreDelete(int $id): void {
-        self::requireAdmin();
-        $ok = modelAdminGenres::deleteGenre($id);
-        if (!$ok) $_SESSION['errorString'] = 'Не удалось удалить жанр.';
-        self::redirect('genresAdmin');
     }
 }
