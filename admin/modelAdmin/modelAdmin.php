@@ -38,6 +38,8 @@ class modelAdmin
         $_SESSION['login']     = (string)$user['login'];
         $_SESSION['role']      = (string)$user['role'];
         $_SESSION['is_admin']  = true;
+        $_SESSION['avatar']    = (string)($user['avatar'] ?? '');
+
 
         return true;
     }

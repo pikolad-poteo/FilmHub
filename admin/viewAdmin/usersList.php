@@ -14,21 +14,83 @@ if ($users instanceof Traversable) {
 
 /**
  * base пути (без хардкода /filmhub)
+ * Пример:
+ *   SCRIPT_NAME = /filmhub/admin/index.php
+ *   adminBase   = /filmhub/admin
+ *   projectBase = /filmhub
  */
-$adminBase   = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/admin/index.php')), '/'); // /filmhub/admin
-$projectBase = preg_replace('~/admin$~', '', $adminBase); // /filmhub
+$adminBase   = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/admin/index.php')), '/');
+$projectBase = preg_replace('~/admin$~', '', $adminBase);
+$projectBase = rtrim($projectBase, '/'); // может быть '' если сайт в корне домена
 
-function buildAvatarUrl(string $projectBase, ?string $avatar): string
+/**
+ * Абсолютный путь к корню проекта и к img/users
+ * usersList.php лежит в admin/viewAdmin/
+ * значит корень проекта = ../../
+ */
+$projectRoot = realpath(__DIR__ . '/../../');
+$usersImgDir = $projectRoot ? realpath($projectRoot . '/img/users') : false;
+
+/**
+ * Находит существующий файл аватара по id (id.jpg / id.png / id.webp ...)
+ * Возвращает URL или пустую строку.
+ */
+function findAvatarById(string $projectBase, $usersImgDir, int $userId): string
 {
+  if (!$usersImgDir || $userId <= 0) return '';
+
+  foreach (['jpg','jpeg','png','webp'] as $ext) {
+    $file = $userId . '.' . $ext;
+    $abs  = $usersImgDir . DIRECTORY_SEPARATOR . $file;
+    if (is_file($abs)) {
+      return ($projectBase !== '' ? $projectBase : '') . '/img/users/' . $file;
+    }
+  }
+  return '';
+}
+
+/**
+ * Строит URL аватарки:
+ * - если в БД лежит https://...
+ * - если /img/... (абсолютный от корня сайта)
+ * - если img/... (относительный)
+ * - если просто имя файла (в /img/users/)
+ * - если avatar пустой -> ищем по id (реальный ext)
+ */
+function buildAvatarUrl(string $projectBase, ?string $avatar, ?int $userId, $usersImgDir): string
+{
+  $projectBase = rtrim($projectBase, '/');
   $p = trim((string)$avatar);
-  if ($p === '') return '';
 
-  if (preg_match('~^https?://~i', $p)) return $p;
-  if ($p[0] === '/') return $projectBase . $p;
-  if (str_starts_with($p, 'img/')) return $projectBase . '/' . $p;
+  // 1) если в БД задано
+  if ($p !== '') {
+    if (preg_match('~^https?://~i', $p)) return $p;
 
-  // по умолчанию считаем, что это имя файла в /img/users/
-  return $projectBase . '/img/users/' . $p;
+    if ($p[0] === '/') {
+      // путь от корня сайта: /img/users/...
+      return ($projectBase !== '' ? $projectBase : '') . $p;
+    }
+
+    if (str_starts_with($p, 'img/')) {
+      return ($projectBase !== '' ? $projectBase : '') . '/' . $p;
+    }
+
+    // просто имя файла
+    return ($projectBase !== '' ? $projectBase : '') . '/img/users/' . $p;
+  }
+
+  // 2) fallback по id -> ищем реально существующий файл
+  if ($userId) {
+    $byId = findAvatarById($projectBase, $usersImgDir, (int)$userId);
+    if ($byId !== '') return $byId;
+  }
+
+  // 3) если есть default.png — вернём его, иначе пусто (будет иконка)
+  if ($usersImgDir && is_file($usersImgDir . DIRECTORY_SEPARATOR . 'default.png')) {
+    return ($projectBase !== '' ? $projectBase : '') . '/img/users/default.png';
+  }
+
+  return '';
 }
 
 /**
@@ -81,7 +143,6 @@ $iconDir = function(string $currentSort, string $currentDir, string $col): strin
     </div>
   </div>
 
-  <!-- Если у тебя есть форма добавления пользователя — поменяешь ссылку -->
   <a href="userAdd" class="btn btn-success">
     <i class="bi bi-plus-circle"></i> Add user
   </a>
@@ -116,7 +177,7 @@ $iconDir = function(string $currentSort, string $currentDir, string $col): strin
             </a>
           </th>
           <th style="width:170px;">Created</th>
-          <th class="text-end" style="width:130px;">Actions</th>
+          <th class="text-end" style="width: 140px;">Actions</th>
         </tr>
       </thead>
 
@@ -127,7 +188,9 @@ $iconDir = function(string $currentSort, string $currentDir, string $col): strin
           $login  = (string)($u['login'] ?? '');
           $email  = (string)($u['email'] ?? '');
           $role   = (string)($u['role'] ?? 'user');
-          $avatar = buildAvatarUrl($projectBase, $u['avatar'] ?? '');
+
+          // ВАЖНО: передаём $id и $usersImgDir
+          $avatarUrl = buildAvatarUrl($projectBase, $u['avatar'] ?? null, $id, $usersImgDir);
 
           $created = (string)($u['created_at'] ?? '');
           $roleBadge = ($role === 'admin') ? 'text-bg-primary' : 'text-bg-secondary';
@@ -136,9 +199,9 @@ $iconDir = function(string $currentSort, string $currentDir, string $col): strin
           <td><?= $id ?></td>
 
           <td>
-            <?php if ($avatar !== ''): ?>
+            <?php if ($avatarUrl !== ''): ?>
               <img
-                src="<?= h($avatar) ?>"
+                src="<?= h($avatarUrl) ?>"
                 alt="<?= h($login) ?>"
                 style="width:40px;height:40px;border-radius:14px;object-fit:cover;border:1px solid rgba(15,23,42,.10);background:#f1f5f9"
                 loading="lazy"
@@ -165,19 +228,37 @@ $iconDir = function(string $currentSort, string $currentDir, string $col): strin
           <td class="text-muted small"><?= h($created) ?></td>
 
           <td class="text-end">
-            <!-- Если у тебя есть userEdit — включишь кнопку -->
-            <!-- <a href="userEdit?id=<?= $id ?>" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil-square"></i></a> -->
+            <a
+              href="userAvatar?id=<?= $id ?>"
+              class="btn btn-sm btn-outline-primary"
+              title="Edit avatar"
+              aria-label="Edit avatar"
+            >
+              <i class="bi bi-image"></i>
+            </a>
+
+            <a
+              href="userAvatarDelete?id=<?= $id ?>"
+              class="btn btn-sm btn-outline-purple"
+              title="Delete avatar"
+              data-confirm="delete"
+              data-title="Удалить аватар?"
+              data-text="Аватар пользователя будет удалён (файл)."
+              aria-label="Delete avatar"
+            >
+              <i class="bi bi-trash3"></i>
+            </a>
 
             <a
               href="userDelete?id=<?= $id ?>"
               class="btn btn-sm btn-outline-danger"
-              title="Delete"
+              title="Delete user"
               data-confirm="delete"
               data-title="Удалить пользователя?"
               data-text="Пользователь будет удалён. Действие нельзя отменить."
-              aria-label="Delete"
+              aria-label="Delete user"
             >
-              <i class="bi bi-trash3"></i>
+              <i class="bi bi-person-x"></i>
             </a>
           </td>
         </tr>

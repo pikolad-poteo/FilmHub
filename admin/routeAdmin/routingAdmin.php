@@ -16,6 +16,11 @@ elseif ($path == 'dashboard') {
     $response = controllerAdmin::dashboard();
 }
 
+/* ✅ NEW: delete admin avatar (file) */
+elseif ($path == 'adminAvatarDelete') {
+    $response = controllerAdminUsers::adminAvatarDelete();
+}
+
 /* ===== MOVIES ===== */
 elseif ($path == 'moviesAdmin') {
     $response = controllerAdminMovies::movieList();
@@ -43,6 +48,16 @@ elseif ($path == 'movieDeleteResult' && isset($_GET['id'])) {
 elseif ($path == 'usersAdmin') {
     $response = controllerAdminUsers::usersList();
 }
+elseif ($path == 'userAvatar' && isset($_GET['id'])) {
+    $response = controllerAdminUsers::userAvatarForm((int)$_GET['id']);
+}
+elseif ($path == 'userAvatarUpdate' && isset($_GET['id'])) {
+    $response = controllerAdminUsers::userAvatarUpdate((int)$_GET['id']);
+}
+elseif ($path == 'userAvatarDelete' && isset($_GET['id'])) {
+    $response = controllerAdminUsers::userAvatarDelete((int)$_GET['id']);
+}
+
 
 /* ===== MODERATION LISTS ===== */
 elseif ($path == 'commentsAdmin') {
@@ -81,7 +96,6 @@ elseif ($path == 'userDelete' && isset($_GET['id'])) {
 elseif ($path == 'userDeleteResult' && isset($_GET['id'])) {
     $response = controllerAdminUsers::userDeleteResult((int)$_GET['id']);
 }
-
 else {
     $response = controllerAdmin::error404();
 }

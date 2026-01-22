@@ -25,8 +25,6 @@ if (!in_array($sort, $allowedSort, true)) $sort = 'created_at';
 
 if (!empty($comments)) {
   usort($comments, function($a, $b) use ($sort, $dir) {
-
-    // вычисляем поле сортировки
     if ($sort === 'user') {
       $av = (string)($a['user_login'] ?? $a['login'] ?? ('user#' . (int)($a['user_id'] ?? 0)));
       $bv = (string)($b['user_login'] ?? $b['login'] ?? ('user#' . (int)($b['user_id'] ?? 0)));
@@ -56,14 +54,27 @@ function buildSortLink(string $sort, string $dir): string {
   $qs['dir']  = $dir;
   return '?' . http_build_query($qs);
 }
+
 function nextDir(string $currentSort, string $currentDir, string $clickedSort): string {
   if ($currentSort !== $clickedSort) return 'asc';
   return $currentDir === 'asc' ? 'desc' : 'asc';
 }
+
 $iconDir = function(string $currentSort, string $currentDir, string $col): string {
   if ($currentSort !== $col) return '';
   return $currentDir === 'asc' ? ' <i class="bi bi-arrow-up"></i>' : ' <i class="bi bi-arrow-down"></i>';
 };
+
+/**
+ * ✅ ВАЖНО: строим query-string для кнопок действий (toggle/delete),
+ * чтобы после клика сохранялись sort/dir и любые другие параметры списка.
+ */
+function buildActionQs(): string {
+  $qs = $_GET ?? [];
+  unset($qs['id']); // id будет отдельным параметром в action ссылке
+  return !empty($qs) ? '&' . http_build_query($qs) : '';
+}
+$actionQs = buildActionQs();
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -166,7 +177,7 @@ $iconDir = function(string $currentSort, string $currentDir, string $col): strin
 
           <td class="text-end">
             <a
-              href="commentToggle?id=<?= $id ?>"
+              href="commentToggle?id=<?= $id ?><?= h($actionQs) ?>"
               class="btn btn-sm btn-outline-primary"
               title="<?= $isHidden ? 'Show' : 'Hide' ?>"
               aria-label="<?= $isHidden ? 'Show' : 'Hide' ?>"
@@ -175,7 +186,7 @@ $iconDir = function(string $currentSort, string $currentDir, string $col): strin
             </a>
 
             <a
-              href="commentDelete?id=<?= $id ?>"
+              href="commentDelete?id=<?= $id ?><?= h($actionQs) ?>"
               class="btn btn-sm btn-outline-danger"
               title="Delete"
               data-confirm="delete"
