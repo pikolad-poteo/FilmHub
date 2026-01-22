@@ -46,6 +46,8 @@
     });
   });
 
+  
+
   /**
    * Live poster preview (movie add/edit forms)
    * Requires:
@@ -88,4 +90,5 @@
 
     posterInput.addEventListener('input', applyPreview);
   }
+
 })();

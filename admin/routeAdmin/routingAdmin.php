@@ -51,6 +51,9 @@ elseif ($path == 'commentsAdmin') {
 elseif ($path == 'commentToggle' && isset($_GET['id'])) {
     $response = controllerAdminUsers::commentToggle((int)$_GET['id']);
 }
+elseif ($path == 'commentDelete' && isset($_GET['id'])) {
+    $response = controllerAdminUsers::commentDelete((int)$_GET['id']);
+}
 
 elseif ($path == 'favoritesAdmin') {
     $response = controllerAdminUsers::favoritesList();

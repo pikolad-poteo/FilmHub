@@ -30,4 +30,15 @@ class modelAdminComments
             ':id' => $id
         ]);
     }
+
+    public static function deleteById(int $id): bool
+    {
+        $id = (int)$id;
+        if ($id <= 0) {
+            return false;
+        }
+
+        $db = new Database();
+        return $db->executeRun("DELETE FROM comments WHERE id = :id", [':id' => $id]);
+    }
 }

@@ -47,6 +47,21 @@ class controllerAdminUsers
         self::redirect('commentsAdmin');
     }
 
+
+    public static function commentDelete(int $id): void {
+        self::requireAdmin();
+
+        $id = (int)$id;
+        if ($id <= 0) {
+            self::redirect('commentsAdmin');
+        }
+
+        modelAdminComments::deleteById($id);
+
+        self::redirect('commentsAdmin');
+    }
+
+
     public static function favoritesList(): void {
         self::requireAdmin();
         $arr = modelAdminFavorites::getAllFavorites();
