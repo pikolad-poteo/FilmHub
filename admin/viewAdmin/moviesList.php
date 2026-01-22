@@ -1,95 +1,190 @@
 <?php
+require_once __DIR__ . '/../inc/helpers.php';
+
 $pageTitle = 'Movies';
 ob_start();
+
+$movies = $arr ?? [];
+if ($movies instanceof Traversable) {
+  $tmp = [];
+  foreach ($movies as $x) $tmp[] = $x;
+  $movies = $tmp;
+}
+
+/**
+ * base пути (без хардкода /filmhub)
+ */
+$adminBase   = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/admin/index.php')), '/'); // /filmhub/admin
+$projectBase = preg_replace('~/admin$~', '', $adminBase); // /filmhub
+
+function buildPosterUrl(string $projectBase, ?string $poster): string
+{
+  $p = trim((string)$poster);
+  if ($p === '') return '';
+
+  if (preg_match('~^https?://~i', $p)) return $p;
+
+  if ($p[0] === '/') return $projectBase . $p;
+
+  if (str_starts_with($p, 'img/')) return $projectBase . '/' . $p;
+
+  if (!preg_match('~\.[a-z0-9]{2,5}$~i', $p)) {
+    $p .= '.jpg';
+  }
+
+  return $projectBase . '/img/movies/' . $p;
+}
+
+/**
+ * СОРТИРОВКА (внутри страницы)
+ * ?sort=id|title&dir=asc|desc
+ */
+$sort = $_GET['sort'] ?? 'id';
+$dir  = strtolower($_GET['dir'] ?? 'asc');
+$dir  = in_array($dir, ['asc', 'desc'], true) ? $dir : 'asc';
+
+$allowedSort = ['id', 'title'];
+if (!in_array($sort, $allowedSort, true)) $sort = 'id';
+
+if (!empty($movies)) {
+  usort($movies, function($a, $b) use ($sort, $dir) {
+    $av = $a[$sort] ?? '';
+    $bv = $b[$sort] ?? '';
+
+    if ($sort === 'id') {
+      $cmp = (int)$av <=> (int)$bv;
+    } else {
+      $cmp = mb_strtolower((string)$av) <=> mb_strtolower((string)$bv);
+    }
+
+    return $dir === 'desc' ? -$cmp : $cmp;
+  });
+}
+
+function buildSortLink(string $sort, string $dir): string {
+  $qs = $_GET;
+  $qs['sort'] = $sort;
+  $qs['dir']  = $dir;
+  return '?' . http_build_query($qs);
+}
+
+function nextDir(string $currentSort, string $currentDir, string $clickedSort): string {
+  if ($currentSort !== $clickedSort) return 'asc';
+  return $currentDir === 'asc' ? 'desc' : 'asc';
+}
+
+$iconDir = function(string $currentSort, string $currentDir, string $col): string {
+  if ($currentSort !== $col) return '';
+  return $currentDir === 'asc' ? ' <i class="bi bi-arrow-up"></i>' : ' <i class="bi bi-arrow-down"></i>';
+};
 ?>
-<div class="d-flex align-items-center justify-content-between mb-3">
+
+<div class="d-flex justify-content-between align-items-center mb-3">
   <div>
-    <h1 class="h4 mb-1">Movies</h1>
-    <div class="text-muted small">Управление фильмами</div>
+    <h1 class="h4 mb-0">Movies</h1>
+    <div class="text-muted small">
+      Sort:
+      <a class="text-decoration-none" href="<?= h(buildSortLink('id', nextDir($sort, $dir, 'id'))) ?>">
+        ID<?= $iconDir($sort, $dir, 'id') ?>
+      </a>
+      ·
+      <a class="text-decoration-none" href="<?= h(buildSortLink('title', nextDir($sort, $dir, 'title'))) ?>">
+        Title<?= $iconDir($sort, $dir, 'title') ?>
+      </a>
+    </div>
   </div>
 
-  <a class="btn btn-success" href="movieAdd">
-    <i class="bi bi-plus-circle me-1"></i> Add movie
+  <a href="movieAdd" class="btn btn-success">
+    <i class="bi bi-plus-circle"></i> Add movie
   </a>
 </div>
 
-<div class="fh-card p-3">
+<?php if (empty($movies)): ?>
+  <div class="alert alert-info">Movies not found</div>
+<?php else: ?>
   <div class="table-responsive">
-    <table class="table fh-table align-middle">
+    <table class="table fh-table table-hover align-middle">
       <thead>
         <tr>
-          <th style="width:80px;">Poster</th>
-          <th>Title</th>
+          <th style="width:70px;">
+            <a class="text-decoration-none" href="<?= h(buildSortLink('id', nextDir($sort, $dir, 'id'))) ?>">
+              ID<?= $iconDir($sort, $dir, 'id') ?>
+            </a>
+          </th>
+          <th style="width:110px;">Poster</th>
+          <th>
+            <a class="text-decoration-none" href="<?= h(buildSortLink('title', nextDir($sort, $dir, 'title'))) ?>">
+              Title<?= $iconDir($sort, $dir, 'title') ?>
+            </a>
+          </th>
           <th style="width:90px;">Year</th>
-          <th style="width:140px;">Genre</th>
-          <th style="width:130px;">Actions</th>
+          <th style="width:160px;">Genre</th>
+          <th class="text-end" style="width:130px;">Actions</th>
         </tr>
       </thead>
+
       <tbody>
-        <?php if (empty($movies)): ?>
-          <tr>
-            <td colspan="5" class="text-muted py-4">
-              <i class="bi bi-inbox me-1"></i> Нет фильмов
-            </td>
-          </tr>
-        <?php else: ?>
-          <?php foreach ($movies as $m): ?>
-            <?php
-              $poster = trim((string)($m['poster'] ?? ''));
-              // если poster хранится как относительный путь "img/movies/.."
-              // то браузер сам возьмет от корня сайта если начинается с /
-              if ($poster !== '' && $poster[0] !== '/' && !preg_match('~^https?://~i', $poster)) {
-                // сделаем относительный к /filmhub/
-                $poster = '/filmhub/' . ltrim($poster, '/');
-              }
-            ?>
-            <tr>
-              <td>
-                <?php if (!empty($m['poster'])): ?>
-                  <img class="fh-poster" src="<?= h($poster) ?>" alt="poster">
-                <?php else: ?>
-                  <div class="fh-poster d-grid place-items-center" style="display:grid;place-items:center;">
-                    <i class="bi bi-image text-muted"></i>
-                  </div>
-                <?php endif; ?>
-              </td>
+      <?php foreach ($movies as $m): ?>
+        <?php
+          $id    = (int)($m['id'] ?? 0);
+          $title = (string)($m['title'] ?? '');
+          $orig  = (string)($m['original_title'] ?? '');
+          $year  = (string)($m['year'] ?? '');
+          $genre = (string)($m['genre_name'] ?? $m['genre'] ?? '—');
 
-              <td>
-                <div class="fw-semibold"><?= h($m['title'] ?? '') ?></div>
-                <div class="text-muted small">ID <?= (int)$m['id'] ?></div>
-              </td>
+          $posterUrl = buildPosterUrl($projectBase, $m['poster'] ?? '');
+        ?>
+        <tr>
+          <td><?= $id ?></td>
 
-              <td class="text-muted"><?= h($m['year'] ?? '') ?></td>
+          <td>
+            <?php if ($posterUrl !== ''): ?>
+              <img
+                class="fh-poster"
+                src="<?= h($posterUrl) ?>"
+                alt="<?= h($title) ?>"
+                loading="lazy"
+              >
+            <?php else: ?>
+              <span class="text-muted">—</span>
+            <?php endif; ?>
+          </td>
 
-              <td>
-                <span class="badge text-bg-secondary">
-                  <?= h($m['genre_name'] ?? ($m['genre'] ?? '—')) ?>
-                </span>
-              </td>
+          <td>
+            <strong><?= h($title) ?></strong>
+            <?php if ($orig !== '' && $orig !== $title): ?>
+              <div class="text-muted small"><?= h($orig) ?></div>
+            <?php endif; ?>
+          </td>
 
-              <td class="d-flex gap-2">
-                <a class="btn btn-sm btn-outline-light"
-                   href="movieEdit?id=<?= (int)$m['id'] ?>"
-                   title="Edit">
-                  <i class="bi bi-pencil-square"></i>
-                </a>
+          <td><?= h($year) ?></td>
+          <td><?= h($genre) ?></td>
 
-                <a class="btn btn-sm btn-outline-danger"
-                   href="movieDelete?id=<?= (int)$m['id'] ?>"
-                   title="Delete"
-                   data-confirm="delete"
-                   data-title="Удалить фильм?"
-                   data-text="Фильм будет удалён из базы. Продолжить?">
-                  <i class="bi bi-trash3"></i>
-                </a>
-              </td>
-            </tr>
-          <?php endforeach; ?>
-        <?php endif; ?>
+          <td class="text-end">
+            <a
+              href="movieEdit?id=<?= $id ?>"
+              class="btn btn-sm btn-outline-primary"
+              title="Edit"
+              aria-label="Edit"
+            >
+              <i class="bi bi-pencil-square"></i>
+            </a>
+
+            <a
+              href="movieDelete?id=<?= $id ?>"
+              class="btn btn-sm btn-outline-danger"
+              title="Delete"
+              aria-label="Delete"
+            >
+              <i class="bi bi-trash3"></i>
+            </a>
+          </td>
+        </tr>
+      <?php endforeach; ?>
       </tbody>
     </table>
   </div>
-</div>
+<?php endif; ?>
 
 <?php
 $content = ob_get_clean();
