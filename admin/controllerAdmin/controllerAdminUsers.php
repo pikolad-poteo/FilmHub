@@ -145,17 +145,32 @@ class controllerAdminUsers
     public static function commentToggle(int $id): void
     {
         self::requireAdmin();
+
         modelAdminComments::toggleStatus((int)$id);
-        self::redirect('commentsAdmin');
+
+        // сохранить сортировку/фильтры при возврате
+        $qs = $_GET ?? [];
+        unset($qs['id']); // id относится к действию, а не к списку
+
+        $back = 'commentsAdmin' . (!empty($qs) ? ('?' . http_build_query($qs)) : '');
+        self::redirect($back);
     }
 
     public static function commentDelete(int $id): void
     {
         self::requireAdmin();
+
         $id = (int)$id;
         if ($id > 0) modelAdminComments::deleteById($id);
-        self::redirect('commentsAdmin');
+
+        // сохранить сортировку/фильтры при возврате
+        $qs = $_GET ?? [];
+        unset($qs['id']);
+
+        $back = 'commentsAdmin' . (!empty($qs) ? ('?' . http_build_query($qs)) : '');
+        self::redirect($back);
     }
+
 
     /* ===== AVATAR: FORM ===== */
     public static function userAvatarForm(int $id): void
