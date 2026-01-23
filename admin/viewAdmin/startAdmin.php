@@ -36,18 +36,36 @@ function fh_project_base(): string {
   return preg_replace('~/admin$~', '', $adminBase) ?: '';
 }
 
+/**
+ * Ищет аватар в /img/users:
+ * 1) {id}.jpg|jpeg|png|webp
+ * 2) admin.jpg|jpeg|png|webp
+ * 3) default.png
+ */
 function fh_find_avatar_url(int $userId): array {
   $projectBase = fh_project_base();
 
-  $projectRoot = realpath(__DIR__ . '/../../'); // ✅ корень проекта (FILMHUB)
-  $imgDir      = $projectRoot ? realpath($projectRoot . '/img/users') : false; // ✅ правильная папка
+  $projectRoot = realpath(__DIR__ . '/../../'); // корень проекта (FILMHUB)
+  $imgDir      = $projectRoot ? realpath($projectRoot . '/img/users') : false;
 
   if (!$imgDir) return [null, null];
 
+  // 1) по id
   foreach (["{$userId}.jpg","{$userId}.jpeg","{$userId}.png","{$userId}.webp"] as $f) {
     $abs = $imgDir . DIRECTORY_SEPARATOR . $f;
     if (is_file($abs)) return [$projectBase . '/img/users/' . $f, $abs];
   }
+
+  // 2) admin.*
+  foreach (["admin.jpg","admin.jpeg","admin.png","admin.webp"] as $f) {
+    $abs = $imgDir . DIRECTORY_SEPARATOR . $f;
+    if (is_file($abs)) return [$projectBase . '/img/users/' . $f, $abs];
+  }
+
+  // 3) default.png
+  $default = $imgDir . DIRECTORY_SEPARATOR . 'default.png';
+  if (is_file($default)) return [$projectBase . '/img/users/default.png', $default];
+
   return [null, null];
 }
 
@@ -58,6 +76,7 @@ if ($stats === null && $hasDb) {
 
     $stats = [
       'movies'     => (int)($db->getOne("SELECT COUNT(*) AS c FROM movies")['c'] ?? 0),
+      'genres'     => (int)($db->getOne("SELECT COUNT(*) AS c FROM genres")['c'] ?? 0),
       'users'      => (int)($db->getOne("SELECT COUNT(*) AS c FROM users")['c'] ?? 0),
       'comments'   => (int)($db->getOne("SELECT COUNT(*) AS c FROM comments")['c'] ?? 0),
       'ratings'    => (int)($db->getOne("SELECT COUNT(*) AS c FROM ratings")['c'] ?? 0),
@@ -105,7 +124,6 @@ if ($stats === null && $hasDb) {
     }
 
   } catch (Throwable $e) {
-    // Если БД временно недоступна — оставим всё безопасно пустым
     $stats = [];
     $activity = [];
   }
@@ -113,6 +131,7 @@ if ($stats === null && $hasDb) {
 
 $stats = $stats ?? [];
 $moviesCount    = $stats['movies']    ?? '—';
+$genresCount    = $stats['genres']    ?? '—';
 $usersCount     = $stats['users']     ?? '—';
 $commentsCount  = $stats['comments']  ?? '—';
 $ratingsCount   = $stats['ratings']   ?? '—';
@@ -123,9 +142,7 @@ $adminId    = (int)($_SESSION['user_id'] ?? 0);
 $adminLogin = (string)($_SESSION['login'] ?? 'admin');
 $adminRole  = (string)($_SESSION['role'] ?? 'admin');
 
-/* ВОТ ЗДЕСЬ */
 [$avatarUrl, $avatarAbs] = fh_find_avatar_url($adminId);
-
 $hasAvatar = (bool)$avatarUrl;
 
 // статус (пока простой)
@@ -141,8 +158,9 @@ $activity = $activity ?? [];
   <div class="text-muted">Быстрый обзор и действия</div>
 </div>
 
+<!-- TOP STATS: 6 cards in one row on XL -->
 <div class="row g-3 mb-3">
-  <div class="col-12 col-md-6 col-xl-3">
+  <div class="col-12 col-md-6 col-xl-2">
     <div class="fh-card p-3">
       <div class="d-flex align-items-center justify-content-between">
         <div>
@@ -157,7 +175,22 @@ $activity = $activity ?? [];
     </div>
   </div>
 
-  <div class="col-12 col-md-6 col-xl-3">
+  <div class="col-12 col-md-6 col-xl-2">
+    <div class="fh-card p-3">
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <div class="text-muted small">Genres</div>
+          <div class="fs-3 fw-bold"><?= h($genresCount) ?></div>
+        </div>
+        <div class="fh-logo" style="width:44px;height:44px;border-radius:14px;">
+          <i class="bi bi-tags"></i>
+        </div>
+      </div>
+      <a class="btn btn-sm btn-outline-primary mt-3 w-100" href="genresAdmin">Open Genres</a>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6 col-xl-2">
     <div class="fh-card p-3">
       <div class="d-flex align-items-center justify-content-between">
         <div>
@@ -172,7 +205,7 @@ $activity = $activity ?? [];
     </div>
   </div>
 
-  <div class="col-12 col-md-6 col-xl-3">
+  <div class="col-12 col-md-6 col-xl-2">
     <div class="fh-card p-3">
       <div class="d-flex align-items-center justify-content-between">
         <div>
@@ -187,7 +220,7 @@ $activity = $activity ?? [];
     </div>
   </div>
 
-  <div class="col-12 col-md-6 col-xl-3">
+  <div class="col-12 col-md-6 col-xl-2">
     <div class="fh-card p-3">
       <div class="d-flex align-items-center justify-content-between">
         <div>
@@ -201,17 +234,32 @@ $activity = $activity ?? [];
       <a class="btn btn-sm btn-outline-primary mt-3 w-100" href="ratingsAdmin">Open Ratings</a>
     </div>
   </div>
+
+  <div class="col-12 col-md-6 col-xl-2">
+    <div class="fh-card p-3">
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <div class="text-muted small">Favorites</div>
+          <div class="fs-3 fw-bold"><?= h($favoritesCount) ?></div>
+        </div>
+        <div class="fh-logo" style="width:44px;height:44px;border-radius:14px;">
+          <i class="bi bi-heart"></i>
+        </div>
+      </div>
+      <a class="btn btn-sm btn-outline-primary mt-3 w-100" href="favoritesAdmin">Open Favorites</a>
+    </div>
+  </div>
 </div>
 
 <div class="row g-3">
-  <div class="col-12 col-xl-7">
+  <div class="col-12 col-xl-12">
     <div class="fh-card p-4">
       <div class="fw-semibold mb-2"><i class="bi bi-lightning-charge me-1"></i> Быстрые действия</div>
 
       <div class="d-flex flex-wrap gap-2">
         <a class="btn btn-success" href="movieAdd"><i class="bi bi-plus-circle me-1"></i> Add movie</a>
         <a class="btn btn-outline-primary" href="genreAdd"><i class="bi bi-tag me-1"></i> Add genre</a>
-        <a class="btn btn-outline-secondary" href="/filmhub/">
+        <a class="btn btn-outline-secondary" href="<?= h((fh_project_base() ?: '')) ?>/">
           <i class="bi bi-box-arrow-up-right me-1"></i> Open site
         </a>
       </div>
@@ -272,6 +320,10 @@ $activity = $activity ?? [];
             </div>
 
             <div class="d-flex gap-2 mt-3">
+              <a class="btn btn-sm btn-outline-primary" href="usersAdmin">
+                <i class="bi bi-pencil-square me-1"></i>
+              </a>
+
               <?php if ($hasAvatar): ?>
                 <a
                   href="adminAvatarDelete"
@@ -296,15 +348,6 @@ $activity = $activity ?? [];
         </div>
       </div>
 
-    </div>
-  </div>
-
-  <div class="col-12 col-xl-5">
-    <div class="fh-card p-4">
-      <div class="fw-semibold mb-2"><i class="bi bi-heart me-1"></i> Favorites (всего)</div>
-      <div class="fs-3 fw-bold"><?= h($favoritesCount) ?></div>
-      <div class="text-muted small">Показывает активность пользователей</div>
-      <a class="btn btn-sm btn-outline-primary mt-3 w-100" href="favoritesAdmin">Open Favorites</a>
     </div>
   </div>
 </div>

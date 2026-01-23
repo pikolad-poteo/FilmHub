@@ -1,76 +1,108 @@
 <?php
+// admin/viewAdmin/userAvatarForm.php
 require_once __DIR__ . '/../inc/helpers.php';
 
 $pageTitle = 'User avatar';
 ob_start();
 
-$u = $u ?? [];
-$id = (int)($u['id'] ?? 0);
-$login = (string)($u['login'] ?? '');
-$email = (string)($u['email'] ?? '');
-$avatarUrl = (string)($avatarUrl ?? '');
+/**
+ * Совместимость: контроллер мог передать $user или $arr
+ */
+$user = $user ?? ($arr ?? []);
+if ($user instanceof Traversable) {
+  $tmp = [];
+  foreach ($user as $x) $tmp[] = $x;
+  $user = $tmp;
+}
+if (!is_array($user)) $user = [];
+
+$id    = (int)($user['id'] ?? ($_GET['id'] ?? 0));
+$login = (string)($user['login'] ?? '');
+$role  = (string)($user['role'] ?? 'user');
+
+/**
+ * projectBase (без хардкода /filmhub)
+ */
+$adminBase   = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/admin/index.php')), '/'); // /.../admin
+$projectBase = preg_replace('~/admin$~', '', $adminBase) ?: ''; // /...
+
+$avatarUrl = user_avatar_url($user + ['id' => $id], $projectBase);
+$hasAvatar = (bool)$avatarUrl;
 ?>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <div>
-    <h1 class="h4 mb-1">Avatar</h1>
-    <div class="text-muted small">
-      User #<?= $id ?> — <strong><?= h($login) ?></strong> (<?= h($email) ?>)
-    </div>
-  </div>
-  <a class="btn btn-sm btn-outline-secondary" href="usersAdmin">
-    <i class="bi bi-arrow-left"></i> Back
-  </a>
+<div class="mb-3">
+  <h1 class="h4 mb-1">User avatar</h1>
+  <div class="text-muted">Manage avatar for user: <span class="fw-semibold"><?= h($login) ?></span></div>
 </div>
 
-<div class="row g-3">
-  <div class="col-12 col-lg-5">
-    <div class="fh-card p-4">
-      <div class="fw-semibold mb-2">Current avatar</div>
+<div class="row g-3 align-items-stretch">
 
-      <div class="d-flex align-items-center gap-3">
-        <div class="fh-avatar">
-          <?php if ($avatarUrl !== ''): ?>
-            <img src="<?= h($avatarUrl) ?>" alt="<?= h($login) ?>">
-          <?php else: ?>
-            <div class="fh-avatar__ph"><i class="bi bi-person"></i></div>
-          <?php endif; ?>
-        </div>
+  <!-- LEFT: current avatar -->
+<div class="col-12 col-lg-5">
+  <div class="fh-card p-4 fh-avatar-card h-100">
+    <div class="fw-semibold mb-3">Current avatar</div>
 
-        <div class="flex-grow-1">
-          <div class="text-muted small">
-            Хранится в <code>/img/users/</code> как <code><?= $id ?>.jpg/png/webp</code>
-          </div>
-
-          <div class="d-flex gap-2 mt-2">
-            <a
-              class="btn btn-sm btn-outline-danger"
-              href="userAvatarDelete?id=<?= $id ?>"
-              data-confirm="delete"
-              data-title="Удалить аватар?"
-              data-text="Аватар пользователя будет удалён. Действие нельзя отменить."
-            >
-              <i class="bi bi-trash3"></i>
-            </a>
-          </div>
-        </div>
+    <div class="d-flex align-items-center gap-3">
+      <div class="fh-avatar fh-avatar-lg">
+        <?php if (!empty($hasAvatar) && !empty($avatarUrl)): ?>
+          <img src="<?= h($avatarUrl) ?>" alt="User avatar">
+        <?php else: ?>
+          <div class="fh-avatar__ph"><i class="bi bi-person"></i></div>
+        <?php endif; ?>
       </div>
 
+      <div class="flex-grow-1">
+
+        <?php
+          // Нормализуем логин: убираем пробелы и "псевдо-плейсхолдеры"
+          $loginNorm = trim((string)($login ?? ''));
+
+          // Иногда логин “по умолчанию” кладут как '—' или '-' — считаем это пустым
+          if (in_array($loginNorm, ['—', '-', '–', '— —', ''], true)) {
+            $loginNorm = '';
+          }
+        ?>
+
+        <div class="fw-bold">
+          <?= $loginNorm !== '' ? h($loginNorm) : 'ID:' . (int)$id ?>
+        </div>
+
+        <div class="text-muted small mt-2">
+          Хранится в <code>/img/users/</code> как <code><?= h((string)$id) ?>.jpg/png/webp</code>
+        </div>
+
+        <div class="d-flex gap-2 mt-2">
+          <a
+            class="btn btn-sm btn-outline-danger"
+            href="userAvatarDelete?id=<?= (int)$id ?>"
+            data-confirm="delete"
+            data-title="Удалить аватар?"
+            data-text="Аватар пользователя будет удалён. Действие нельзя отменить."
+            title="Delete avatar"
+            aria-label="Delete avatar"
+          >
+            <i class="bi bi-trash3"></i>
+          </a>
+        </div>
+
+      </div>
     </div>
   </div>
+</div>
 
+  <!-- RIGHT: upload -->
   <div class="col-12 col-lg-7">
-    <div class="fh-card p-4">
+    <div class="fh-card p-4 fh-avatar-upload h-100">
       <div class="fw-semibold mb-2">Upload new avatar</div>
 
-      <form action="userAvatarUpdate?id=<?= $id ?>" method="post" enctype="multipart/form-data">
+      <form action="userAvatarUpdate?id=<?= (int)$id ?>" method="post" enctype="multipart/form-data">
         <div class="mb-3">
           <label class="form-label">Choose image (JPG/PNG/WebP, max 2MB)</label>
           <input class="form-control" type="file" name="avatar" accept="image/jpeg,image/png,image/webp" required>
         </div>
 
         <button class="btn btn-success" type="submit">
-          <i class="bi bi-upload"></i> Save
+          <i class="bi bi-upload me-1"></i> Save
         </button>
       </form>
 
@@ -79,6 +111,7 @@ $avatarUrl = (string)($avatarUrl ?? '');
       </div>
     </div>
   </div>
+
 </div>
 
 <?php

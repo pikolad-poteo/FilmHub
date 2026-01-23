@@ -24,30 +24,40 @@ if (!function_exists('user_avatar_url')) {
   function user_avatar_url(array $user, string $projectBase = ''): string {
     $projectBase = rtrim($projectBase, '/');
 
-    $id = (int)($user['id'] ?? 0);
+    $id     = (int)($user['id'] ?? 0);
     $avatar = trim((string)($user['avatar'] ?? ''));
 
     // 1) если в БД есть прямой url
-    if ($avatar !== '' && preg_match('~^https?://~i', $avatar)) return $avatar;
+    if ($avatar !== '' && preg_match('~^https?://~i', $avatar)) {
+      return $avatar;
+    }
 
     // 2) если в БД лежит относительный путь
-    if ($avatar !== '' && $avatar[0] === '/') return $projectBase . $avatar;
-    if ($avatar !== '' && str_starts_with($avatar, 'img/')) return $projectBase . '/' . $avatar;
+    if ($avatar !== '') {
+      if ($avatar[0] === '/') return $projectBase . $avatar;
+      if (str_starts_with($avatar, 'img/')) return $projectBase . '/' . $avatar;
 
-    // 3) если в БД лежит только имя файла
-    if ($avatar !== '') return $projectBase . '/img/users/' . $avatar;
+      // 3) если в БД лежит только имя файла
+      return $projectBase . '/img/users/' . $avatar;
+    }
 
-    // 4) fallback: ищем по id.ext
+    // 4) fallback: ищем реальный файл по id.ext (ПРОВЕРЯЕМ что он существует)
     if ($id > 0) {
-      foreach (['jpg','jpeg','png','webp'] as $ext) {
-        $rel = "/img/users/{$id}.{$ext}";
-        $abs = $_SERVER['DOCUMENT_ROOT'] . $projectBase . $rel; // может быть не идеально на локалке
-        // если DOCUMENT_ROOT не совпадает, просто вернём без проверки:
-        return $projectBase . $rel;
+      $projectRoot = realpath(__DIR__ . '/../../');          // admin/inc -> корень проекта
+      $imgDir      = $projectRoot ? ($projectRoot . '/img/users') : null;
+
+      if ($imgDir && is_dir($imgDir)) {
+        foreach (['jpg','jpeg','png','webp'] as $ext) {
+          $abs = $imgDir . '/' . $id . '.' . $ext;
+          if (is_file($abs)) {
+            return $projectBase . '/img/users/' . $id . '.' . $ext;
+          }
+        }
       }
     }
 
-    // 5) дефолтная заглушка (сделай файл)
+    // 5) дефолт
     return $projectBase . '/img/users/default.png';
   }
 }
+
