@@ -1,6 +1,18 @@
 <?php
 class modelAdminMovies
 {
+    private static function normalizePoster(?string $poster): ?string
+    {
+        $p = trim((string)$poster);
+        if ($p === '') return null;
+
+        // внешняя ссылка допустима
+        if (preg_match('~^https?://~i', $p)) return $p;
+
+        // ✅ всегда сохраняем только имя файла
+        return basename($p);
+    }
+
     public static function getAllMovies(): array {
         $db = new Database();
         return $db->getAll("
@@ -40,7 +52,7 @@ class modelAdminMovies
             ':dur'      => ($_POST['duration_minutes'] ?? '') !== '' ? (int)$_POST['duration_minutes'] : null,
             ':country'  => trim((string)($_POST['country'] ?? '')) ?: null,
             ':director' => trim((string)($_POST['director'] ?? '')) ?: null,
-            ':poster'   => trim((string)($_POST['poster'] ?? '')) ?: null,
+            ':poster'   => self::normalizePoster($_POST['poster'] ?? null),
             ':yt'       => trim((string)($_POST['youtube_trailer_id'] ?? '')) ?: null,
             ':gid'      => ($_POST['genre_id'] ?? '') !== '' ? (int)$_POST['genre_id'] : null,
         ];
@@ -79,7 +91,7 @@ class modelAdminMovies
             ':dur'      => ($_POST['duration_minutes'] ?? '') !== '' ? (int)$_POST['duration_minutes'] : null,
             ':country'  => trim((string)($_POST['country'] ?? '')) ?: null,
             ':director' => trim((string)($_POST['director'] ?? '')) ?: null,
-            ':poster'   => trim((string)($_POST['poster'] ?? '')) ?: null,
+            ':poster'   => self::normalizePoster($_POST['poster'] ?? null),
             ':yt'       => trim((string)($_POST['youtube_trailer_id'] ?? '')) ?: null,
             ':gid'      => ($_POST['genre_id'] ?? '') !== '' ? (int)$_POST['genre_id'] : null,
         ];
@@ -87,8 +99,29 @@ class modelAdminMovies
         return $db->executeRun($sql, $params);
     }
 
-    public static function deleteMovie(int $id): bool {
-        $db = new Database();
-        return $db->executeRun("DELETE FROM movies WHERE id = :id", [':id' => $id]);
+    public static function movieDeleteResult(int $id): void {
+        self::requireAdmin();
+
+        $m = modelAdminMovies::getMovieByID($id);
+        $poster = $m['poster'] ?? '';
+
+        $ok = modelAdminMovies::deleteMovie($id);
+        if (!$ok) {
+            $_SESSION['errorString'] = 'Не удалось удалить фильм.';
+            self::redirect('moviesAdmin');
+        }
+
+        // удаляем файл постера (только локальный)
+        if ($poster && !preg_match('~^https?://~i', (string)$poster)) {
+            $file = basename((string)$poster);
+            if ($file !== '' && $file !== 'default.png') {
+                $projectRoot = realpath(__DIR__ . '/../../');
+                $abs = $projectRoot ? ($projectRoot . '/img/movies/' . $file) : '';
+                if ($abs && is_file($abs)) @unlink($abs);
+            }
+        }
+
+        self::redirect('moviesAdmin');
     }
+
 }

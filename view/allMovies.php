@@ -1,42 +1,62 @@
 <?php
 $pageTitle = 'Все фильмы';
 
+require_once __DIR__ . '/../model/CommentModel.php';
+
+$base = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/index.php'));
+$base = rtrim($base, '/');
+$baseHref = $base === '' ? '' : $base;
+
+function abs_asset(string $baseHref, string $path): string {
+  $path = trim((string)$path);
+  if ($path === '') return '';
+  if (preg_match('~^https?://~i', $path)) return $path;
+  if ($path[0] === '/') return $path;
+  return ($baseHref ? $baseHref . '/' : '/') . $path;
+}
+
 ob_start();
 ?>
 <h1>Все фильмы</h1>
 
 <?php if (empty($arr)): ?>
-    <p>Фильмы не найдены.</p>
+  <p>Фильмы не найдены.</p>
 <?php else: ?>
-    <table border="1" cellpadding="6" cellspacing="0">
-        <tr>
-            <th>ID</th>
-            <th>Название</th>
-            <th>Год</th>
-            <th>Жанр</th>
-            <th>Рейтинг</th>
-        </tr>
-        <?php foreach ($arr as $m): ?>
-            <tr>
-                <td><?= (int)$m['id'] ?></td>
-                <td>
-                    <a href="movie?id=<?= (int)$m['id'] ?>">
-                        <?= htmlspecialchars($m['title'] ?? '') ?>
-                    </a>
-                </td>
-                <td><?= !empty($m['year']) ? (int)$m['year'] : '-' ?></td>
-                <td><?= !empty($m['genre_name']) ? htmlspecialchars($m['genre_name']) : '-' ?></td>
-                <td>
-                    <?php
-                        $avg = $m['rating_avg'] ?? null;
-                        $cnt = $m['rating_count'] ?? 0;
-                        if ($avg === null) echo '-';
-                        else echo htmlspecialchars($avg) . " (" . (int)$cnt . ")";
-                    ?>
-                </td>
-            </tr>
-        <?php endforeach; ?>
-    </table>
+  <div class="movie-grid">
+    <?php foreach ($arr as $m): ?>
+      <?php
+        $id = (int)($m['id'] ?? 0);
+        $title = (string)($m['title'] ?? '');
+        $year = !empty($m['year']) ? (int)$m['year'] : null;
+        $genre = (string)($m['genre_name'] ?? '');
+        $posterUrl = movie_poster_url($m['poster'] ?? '', $baseHref);
+        $avg = $m['rating_avg'] ?? null;
+        $commentsCount = $id ? CommentModel::getCommentCountByMovieID($id) : 0;
+      ?>
+      <div class="movie-card">
+        <div class="movie-poster">
+          <?php if ($posterUrl): ?>
+            <img src="<?= htmlspecialchars($posterUrl) ?>" alt="<?= htmlspecialchars($title) ?>">
+          <?php endif; ?>
+        </div>
+
+        <div class="movie-body">
+          <h3 class="movie-title"><?= htmlspecialchars($title ?: 'Без названия') ?></h3>
+          <div class="movie-sub">
+            <?= $year ? $year : '-' ?>
+            <?= $genre ? ' • ' . htmlspecialchars($genre) : '' ?>
+          </div>
+
+          <div class="movie-meta">
+            <span><i class="bi bi-star-fill"></i> <?= ($avg === null) ? '-' : htmlspecialchars((string)$avg) ?></span>
+            <span><i class="bi bi-chat-dots"></i> <?= (int)$commentsCount ?></span>
+          </div>
+
+          <a class="btn-link" href="movie?id=<?= $id ?>"><i class="bi bi-play-circle"></i>К фильму</a>
+        </div>
+      </div>
+    <?php endforeach; ?>
+  </div>
 <?php endif; ?>
 
 <?php

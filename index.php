@@ -3,12 +3,8 @@ declare(strict_types=1);
 
 session_start();
 
-/*
- * Путь к корню проекта.
- * Если проект в подпапке (например /filmhub), то роутер сам это учтёт.
- */
-
 require_once __DIR__ . '/inc/Database.php';
+require_once __DIR__ . '/inc/media.php'; // ✅ ЕДИНАЯ система ассетов/постеров
 
 // Models
 require_once __DIR__ . '/model/BaseModel.php';

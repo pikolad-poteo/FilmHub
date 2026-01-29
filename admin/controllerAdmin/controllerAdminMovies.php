@@ -15,6 +15,87 @@ class controllerAdminMovies
         if (empty($_SESSION['is_admin'])) self::redirect('index.php');
     }
 
+    /**
+     * Загружает постер в /img/movies и возвращает ИМЯ файла для БД: "xxx.ext"
+     * Возвращает null если файл не загружали.
+     */
+    private static function handlePosterUpload(string $fileField, string $title, ?int $year): ?string
+    {
+        if (empty($_FILES[$fileField]) || !is_array($_FILES[$fileField])) {
+            return null;
+        }
+
+        $f = $_FILES[$fileField];
+
+        if (($f['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            return null;
+        }
+
+        if (($f['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+            throw new Exception('Ошибка загрузки файла (код: ' . (int)$f['error'] . ').');
+        }
+
+        $tmp = (string)($f['tmp_name'] ?? '');
+        if ($tmp === '' || !is_uploaded_file($tmp)) {
+            throw new Exception('Временный файл не найден.');
+        }
+
+        $size = (int)($f['size'] ?? 0);
+        if ($size <= 0) throw new Exception('Файл пустой.');
+        if ($size > 12 * 1024 * 1024) throw new Exception('Файл слишком большой (лимит 12MB).');
+
+        $origName = (string)($f['name'] ?? '');
+        $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+        $allowed = ['jpg','jpeg','png','webp'];
+        if (!in_array($ext, $allowed, true)) {
+            throw new Exception('Разрешены только: ' . implode(', ', $allowed));
+        }
+
+        // MIME finfo (мягко)
+        if (function_exists('finfo_open')) {
+            $fi = finfo_open(FILEINFO_MIME_TYPE);
+            if ($fi) {
+                $mime = (string)finfo_file($fi, $tmp);
+                finfo_close($fi);
+                if ($mime !== '' && !preg_match('~^image/(jpeg|png|webp)$~i', $mime)) {
+                    throw new Exception('Файл не похож на изображение (mime: ' . $mime . ').');
+                }
+            }
+        }
+
+        // Корень проекта: /filmhub
+        $projectRoot = realpath(__DIR__ . '/../../'); // admin/controllerAdmin -> admin -> project root
+        if (!$projectRoot) throw new Exception('Не удалось определить корень проекта.');
+
+        $targetDir = $projectRoot . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'movies';
+        if (!is_dir($targetDir)) {
+            if (!mkdir($targetDir, 0775, true) && !is_dir($targetDir)) {
+                throw new Exception('Не удалось создать папку: ' . $targetDir);
+            }
+        }
+
+        require_once __DIR__ . '/../../inc/media.php'; // на всякий, если где-то не подцепился
+
+        $baseName = fh_movie_poster_filename($title, $year, $ext);
+        $fileName = $baseName;
+
+        // если занято — добавим -2, -3 ...
+        $i = 2;
+        while (is_file($targetDir . DIRECTORY_SEPARATOR . $fileName)) {
+            $fileName = preg_replace('~\.[a-z0-9]+$~i', '', $baseName) . '-' . $i . '.' . $ext;
+            $i++;
+        }
+
+        $absTarget = $targetDir . DIRECTORY_SEPARATOR . $fileName;
+
+        if (!move_uploaded_file($tmp, $absTarget)) {
+            throw new Exception('Не удалось сохранить файл постера.');
+        }
+
+        // ✅ в БД — только имя
+        return $fileName;
+    }
+
     public static function movieList(): void {
         self::requireAdmin();
         $arr = modelAdminMovies::getAllMovies();
@@ -30,8 +111,22 @@ class controllerAdminMovies
     public static function movieAddResult(): void {
         self::requireAdmin();
 
-        $ok = modelAdminMovies::createFromPost();
-        if (!$ok) $_SESSION['errorString'] = 'Не удалось добавить фильм (проверь поля/уникальность title+year).';
+        try {
+            $title = trim((string)($_POST['title'] ?? ''));
+            $year  = ($_POST['year'] ?? '') !== '' ? (int)$_POST['year'] : null;
+            $uploaded = self::handlePosterUpload('poster_file', $title, $year);
+
+            if ($uploaded) {
+                $_POST['poster'] = $uploaded; // ✅ только имя
+            }
+
+            $ok = modelAdminMovies::createFromPost();
+            if (!$ok) {
+                $_SESSION['errorString'] = 'Не удалось добавить фильм (проверь поля/уникальность title+year).';
+            }
+        } catch (Throwable $e) {
+            $_SESSION['errorString'] = 'Постер: ' . $e->getMessage();
+        }
 
         self::redirect('moviesAdmin');
     }
@@ -49,8 +144,22 @@ class controllerAdminMovies
 
     public static function movieEditResult(int $id): void {
         self::requireAdmin();
-        $ok = modelAdminMovies::updateFromPost($id);
-        if (!$ok) $_SESSION['errorString'] = 'Не удалось обновить фильм.';
+
+        try {
+            $title = trim((string)($_POST['title'] ?? ''));
+            $year  = ($_POST['year'] ?? '') !== '' ? (int)$_POST['year'] : null;
+            $uploaded = self::handlePosterUpload('poster_file', $title, $year);
+
+            if ($uploaded) {
+                $_POST['poster'] = $uploaded; // ✅ только имя
+            }
+
+            $ok = modelAdminMovies::updateFromPost($id);
+            if (!$ok) $_SESSION['errorString'] = 'Не удалось обновить фильм.';
+        } catch (Throwable $e) {
+            $_SESSION['errorString'] = 'Постер: ' . $e->getMessage();
+        }
+
         self::redirect('moviesAdmin');
     }
 

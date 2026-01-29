@@ -64,6 +64,24 @@ elseif ($path === 'registerForm') {
 elseif ($path === 'registerAnswer') {
     $response = Controller::registerUser();
 }
+
+/* ----------- Profile ----------- */
+elseif ($path === 'profile') {
+    $response = Controller::profile();
+}
+elseif ($path === 'profileUpdate') {
+    $response = Controller::profileUpdate();
+}
+elseif ($path === 'profileAvatar') {
+    $response = Controller::profileAvatarUpdate();
+}
+elseif ($path === 'profileDelete') {
+    $response = Controller::profileDelete();
+}
+elseif ($path === 'profileAvatarDelete') {
+    $response = Controller::profileAvatarDelete();
+}
+
 else {
     $response = Controller::error404();
 }

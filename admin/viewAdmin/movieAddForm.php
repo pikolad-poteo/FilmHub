@@ -2,11 +2,21 @@
 $pageTitle = 'Add Movie';
 ob_start();
 function h($v){ return htmlspecialchars((string)$v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
+require_once __DIR__ . '/../inc/helpers.php';
+require_once __DIR__ . '/../../inc/media.php';
+
+// /filmhub/admin -> /filmhub
+$adminBase   = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/admin/index.php')), '/');
+$projectBase = preg_replace('~/admin$~', '', $adminBase);
+
+// дефолтный постер (если ничего не выбрано)
+$posterUrl = movie_poster_url('', $projectBase);
 ?>
+
 <div class="d-flex align-items-center justify-content-between mb-3">
   <div>
     <h1 class="h4 mb-1">Добавить фильм</h1>
-    <div class="text-muted small">Заполни основные поля — остальное можно позже</div>
+    <div class="text-muted small">Постер лучше загрузить файлом — путь заполнится автоматически</div>
   </div>
   <a class="btn btn-outline-secondary" href="moviesAdmin">
     <i class="bi bi-arrow-left me-1"></i> Назад
@@ -14,7 +24,7 @@ function h($v){ return htmlspecialchars((string)$v, ENT_QUOTES | ENT_SUBSTITUTE,
 </div>
 
 <div class="fh-card p-4">
-  <form method="post" action="movieAddResult">
+  <form method="post" action="movieAddResult" enctype="multipart/form-data">
     <div class="row g-3">
       <div class="col-12 col-lg-8">
         <label class="form-label">Title*</label>
@@ -63,10 +73,19 @@ function h($v){ return htmlspecialchars((string)$v, ENT_QUOTES | ENT_SUBSTITUTE,
 
         <div class="row g-3 mt-1">
           <div class="col-12 col-lg-6">
-            <label class="form-label">Poster (path / url)</label>
-            <input class="form-control" name="poster" placeholder="img/movies/title.jpg или https://...">
-            <div class="form-text text-muted">Если путь относительный — лучше как: <code>img/movies/...</code></div>
+            <label class="form-label">Poster file (recommended)</label>
+            <input class="form-control" type="file" name="poster_file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+            <div class="form-text text-muted">Файл будет сохранён в <code>/img/movies/</code>, а в БД запишется <code>img/movies/...</code></div>
           </div>
+
+          <div class="col-12 col-lg-6">
+            <label class="form-label">Poster (url / path)</label>
+            <input class="form-control" name="poster" placeholder="Можно оставить пустым, если загружаешь файл">
+            <div class="form-text text-muted">Если указать только имя файла — оно станет <code>img/movies/имя</code></div>
+          </div>
+        </div>
+
+        <div class="row g-3 mt-1">
           <div class="col-12 col-lg-6">
             <label class="form-label">YouTube trailer id</label>
             <input class="form-control" name="youtube_trailer_id" placeholder="dQw4w9WgXcQ">
@@ -84,10 +103,16 @@ function h($v){ return htmlspecialchars((string)$v, ENT_QUOTES | ENT_SUBSTITUTE,
       <div class="col-12 col-lg-4">
         <div class="fh-card p-3">
           <div class="fw-semibold mb-2">
-            <i class="bi bi-image me-1"></i> Предпросмотр постера
+            <i class="bi bi-image me-1"></i> Предпросмотр
           </div>
-          <img id="fhPosterPreview" class="fh-poster d-none" style="width:100%;height:380px;border-radius:14px;">
-          <div class="text-muted small mt-2">Появится автоматически при вводе Poster.</div>
+          <img
+              id="fhPosterPreview"
+              class="fh-poster d-none"
+              src="<?= h($posterUrl) ?>"
+              alt="Poster preview"
+              style="width:100%;height:380px;border-radius:14px;"
+            >
+          <div class="text-muted small mt-2">Превью можно увидеть после сохранения (или на edit).</div>
         </div>
       </div>
     </div>

@@ -17,24 +17,6 @@ if ($movies instanceof Traversable) {
 $adminBase   = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/admin/index.php')), '/'); // /filmhub/admin
 $projectBase = preg_replace('~/admin$~', '', $adminBase); // /filmhub
 
-function buildPosterUrl(string $projectBase, ?string $poster): string
-{
-  $p = trim((string)$poster);
-  if ($p === '') return '';
-
-  if (preg_match('~^https?://~i', $p)) return $p;
-
-  if ($p[0] === '/') return $projectBase . $p;
-
-  if (str_starts_with($p, 'img/')) return $projectBase . '/' . $p;
-
-  if (!preg_match('~\.[a-z0-9]{2,5}$~i', $p)) {
-    $p .= '.jpg';
-  }
-
-  return $projectBase . '/img/movies/' . $p;
-}
-
 /**
  * СОРТИРОВКА (внутри страницы)
  * ?sort=id|title&dir=asc|desc
@@ -131,8 +113,7 @@ $iconDir = function(string $currentSort, string $currentDir, string $col): strin
           $orig  = (string)($m['original_title'] ?? '');
           $year  = (string)($m['year'] ?? '');
           $genre = (string)($m['genre_name'] ?? $m['genre'] ?? '—');
-
-          $posterUrl = buildPosterUrl($projectBase, $m['poster'] ?? '');
+          $posterUrl = movie_poster_url($m['poster'] ?? '', $projectBase);
         ?>
         <tr>
           <td><?= $id ?></td>

@@ -4,7 +4,6 @@ class UserModel extends BaseModel
 {
     public static function registerFromPost(): array
     {
-        // вернём формат как в NewsPortal: [true] либо [false, "ошибка..."]
         $result = [0 => false, 1 => 'error'];
 
         if (!isset($_POST['save'])) {
@@ -67,8 +66,7 @@ class UserModel extends BaseModel
 
     public static function loginFromPost(): bool
     {
-        // поддержка логина по email или login
-        $loginOrEmail = trim((string)($_POST['email'] ?? '')); // оставил имя поля email как в newsportal admin
+        $loginOrEmail = trim((string)($_POST['email'] ?? ''));
         $pass         = (string)($_POST['password'] ?? '');
 
         if ($loginOrEmail === '' || $pass === '') return false;
@@ -98,15 +96,141 @@ class UserModel extends BaseModel
 
     public static function logout(): void
     {
-        unset($_SESSION['user_id'], $_SESSION['login'], $_SESSION['role']);
+        unset($_SESSION['user_id'], $_SESSION['login'], $_SESSION['role'], $_SESSION['is_admin'], $_SESSION['sessionId']);
         session_destroy();
     }
 
     public static function getByID(int $id): ?array
     {
         $db = self::db();
-        return $db->getOne("SELECT id, login, email, role, avatar, created_at, updated_at FROM users WHERE id = :id LIMIT 1", [
+        return $db->getOne("
+            SELECT id, login, email, role, avatar, created_at, updated_at
+            FROM users
+            WHERE id = :id
+            LIMIT 1
+        ", [':id' => $id]);
+    }
+
+    /* =======================
+       PROFILE: UPDATE LOGIN/EMAIL
+       ======================= */
+    public static function updateProfile(int $id, string $login, string $email): array
+    {
+        $login = trim($login);
+        $email = trim($email);
+
+        $errors = '';
+
+        if ($login === '' || mb_strlen($login) < 3) {
+            $errors .= "Логин должен быть минимум 3 символа<br />";
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors .= "Неправильный email<br />";
+        }
+
+        if ($errors !== '') {
+            return [0 => false, 1 => $errors];
+        }
+
+        $db = self::db();
+
+        // уникальность login/email (кроме текущего пользователя)
+        $exLogin = $db->getOne("SELECT id FROM users WHERE login = :l AND id <> :id LIMIT 1", [
+            ':l' => $login,
             ':id' => $id
         ]);
+        if ($exLogin) {
+            $errors .= "Логин уже используется<br />";
+        }
+
+        $exEmail = $db->getOne("SELECT id FROM users WHERE email = :e AND id <> :id LIMIT 1", [
+            ':e' => $email,
+            ':id' => $id
+        ]);
+        if ($exEmail) {
+            $errors .= "Email уже используется<br />";
+        }
+
+        if ($errors !== '') {
+            return [0 => false, 1 => $errors];
+        }
+
+        $ok = $db->executeRun("
+            UPDATE users
+            SET login = :l, email = :e, updated_at = NOW()
+            WHERE id = :id
+            LIMIT 1
+        ", [
+            ':l' => $login,
+            ':e' => $email,
+            ':id' => $id
+        ]);
+
+        return $ok ? [0 => true] : [0 => false, 1 => 'Ошибка обновления'];
+    }
+
+    /* =======================
+       PROFILE: AVATAR
+       ======================= */
+    public static function getAvatarFilename(int $id): ?string
+    {
+        $db = self::db();
+        $row = $db->getOne("SELECT avatar FROM users WHERE id = :id LIMIT 1", [':id' => $id]);
+        $v = $row['avatar'] ?? null;
+        $v = is_string($v) ? trim($v) : '';
+        return $v !== '' ? $v : null;
+    }
+
+    public static function updateAvatar(int $id, string $filename): bool
+    {
+        $db = self::db();
+        return $db->executeRun("
+            UPDATE users
+            SET avatar = :a, updated_at = NOW()
+            WHERE id = :id
+            LIMIT 1
+        ", [
+            ':a'  => $filename,
+            ':id' => $id
+        ]);
+    }
+
+    public static function clearAvatar(int $id): bool
+    {
+        $db = self::db();
+        return $db->executeRun("
+            UPDATE users
+            SET avatar = NULL, updated_at = NOW()
+            WHERE id = :id
+            LIMIT 1
+        ", [':id' => $id]);
+    }
+
+    /* =======================
+       PROFILE: DELETE ACCOUNT
+       ======================= */
+    public static function deleteUser(int $id): bool
+    {
+        $db = self::db();
+
+        // если в БД нет каскадов — удаляем вручную
+        // favorites, ratings, comments завязаны на user_id
+        try {
+            $db->dbh->beginTransaction();
+
+            $db->executeRun("DELETE FROM comments WHERE user_id = :id", [':id' => $id]);
+            $db->executeRun("DELETE FROM favorites WHERE user_id = :id", [':id' => $id]);
+            $db->executeRun("DELETE FROM ratings WHERE user_id = :id", [':id' => $id]);
+            $db->executeRun("DELETE FROM users WHERE id = :id LIMIT 1", [':id' => $id]);
+
+            $db->dbh->commit();
+            return true;
+        } catch (Throwable $e) {
+            if ($db->dbh->inTransaction()) {
+                $db->dbh->rollBack();
+            }
+            return false;
+        }
     }
 }
