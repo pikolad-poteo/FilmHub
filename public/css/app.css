@@ -1,0 +1,599 @@
+:root{
+  --fh-container: 1440px;
+
+  /* ===== CINEMA DARK THEME ===== */
+  --fh-bg: #05060a;
+  --fh-text: rgba(255,255,255,.92);
+  --fh-muted: rgba(255,255,255,.62);
+
+  /* акценты (золото + бордо) */
+  --fh-accent: #f5c542;  /* primary accent (gold) */
+  --fh-accent-2: #ff8a3d;    /* warm orange secondary */
+  --fh-burgundy: #6d0f1e;    /* curtain tone */
+
+  --fh-success: #22c55e;
+  --fh-danger: #ef4444;
+
+  /* тёмное стекло вместо белого */
+  --fh-surface: rgba(10, 12, 18, .80);
+  --fh-surface-2: rgba(14, 16, 24, .62);
+  --fh-surface-3: rgba(8, 10, 14, .82);
+
+  --fh-border: rgba(255,255,255,.10);
+
+  /* чуть менее круглые углы */
+  --fh-radius: 16px;
+  --fh-radius-sm: 12px;
+
+  /* тени — глубже, но мягкие */
+  --fh-shadow: 0 14px 38px rgba(0,0,0,.45);
+  --fh-shadow-hover: 0 18px 52px rgba(0,0,0,.60);
+  
+}
+a:visited{ color: var(--fh-accent); }
+a:active{ color: var(--fh-accent); }
+.btn-link:active{ color: var(--fh-accent); }
+
+
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+
+body.fh-public-body{
+  margin:0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--fh-text);
+  background: url("../../img/background.png") center / cover no-repeat fixed;
+  position: relative;
+}
+
+/* усиление контраста под тёмный UI */
+body.fh-public-body::before{
+  background:
+    radial-gradient(1200px 700px at 50% 0%, rgba(0,0,0,.25), rgba(0,0,0,.62)),
+    linear-gradient(to bottom, rgba(0,0,0,.40), rgba(0,0,0,.68));
+}
+
+
+a{ color: var(--fh-accent); text-decoration:none; }
+a:hover{ text-decoration:underline; }
+
+.fh-container{
+  max-width: var(--fh-container);
+  margin: 0 auto;
+  padding: 20px 24px;
+}
+
+/* ===== Top nav ===== */
+.fh-topnav{
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(8, 10, 14, .78);
+  border-bottom: 1px solid rgba(255,255,255,.10);
+  backdrop-filter: blur(12px);
+}
+.fh-topnav__inner{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+}
+.fh-topnav.is-hidden{
+  display: none !important;
+}
+
+
+.fh-brand{
+  font-weight: 900;
+  letter-spacing: .8px;
+  color: rgba(255,255,255,.92);
+  text-decoration:none;
+  padding: 10px 12px;
+  border-radius: var(--fh-radius-sm);
+}
+.fh-brand:hover{
+  background: rgba(245,197,66,.10);
+  text-decoration:none;
+  color: var(--fh-accent);
+}
+
+.fh-navlinks{
+  display:flex;
+  flex-wrap:wrap;
+  gap: 10px;
+  align-items:center;
+  justify-content:flex-end;
+}
+
+/* ===== Buttons (единый стиль, без дублей) ===== */
+.btn-pill,
+.btn-link,
+button,
+.fh-file-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap: 8px;
+  padding: 10px 14px;
+
+  border-radius: var(--fh-radius-sm);
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.86);
+
+  font-weight: 500; /* менее жирно, как в админке */
+  text-decoration:none;
+  cursor:pointer;
+  transition: .15s ease;
+}
+
+.btn-pill:hover,
+.btn-link:hover,
+button:hover,
+.fh-file-btn:hover{
+  background: rgba(245,197,66,.12);
+  border-color: rgba(245,197,66,.28);
+  color: var(--fh-accent);
+  transform: translateY(-1px);
+  text-decoration:none;
+}
+
+/* акцентная */
+.btn-pill--accent,
+.btn-link{
+  border-color: rgba(245,197,66,.40);
+  background: rgba(245,197,66,.14);
+  color: rgba(255,255,255,.92);
+}
+
+/* danger */
+.btn-pill--danger,
+.btn-danger{
+  border-color: rgba(239,68,68,.40);
+  background: rgba(239,68,68,.12);
+  color: rgba(255,255,255,.92);
+}
+.btn-pill--danger:hover,
+.btn-danger:hover{
+  background: rgba(239,68,68,.18);
+  border-color: rgba(239,68,68,.55);
+}
+
+/* выбранный рейтинг зелёным */
+.btn-pill.is-selected{
+  border-color: rgba(34,197,94,.50);
+  background: rgba(34,197,94,.14);
+  color: rgba(15,23,42,.90);
+}
+.btn-pill.is-selected:hover{
+  background: rgba(34,197,94,.18);
+  border-color: rgba(34,197,94,.60);
+}
+
+/* пользовательская плашка */
+.fh-userpill{
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.86);
+}
+
+.fh-main{ padding-top: 20px; padding-bottom: 30px; }
+
+/* ГЛАВНОЕ: подложка под контент на фоне */
+.fh-main .fh-container{
+  background: var(--fh-surface);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 20px;
+  box-shadow: var(--fh-shadow);
+  backdrop-filter: blur(12px);
+}
+
+.fh-footer{
+  border-top: 1px solid rgba(255,255,255,.25);
+  color: rgba(255,255,255,.78);
+  padding: 16px 0 26px;
+}
+
+/* Alerts */
+.fh-alert{
+  border-radius: var(--fh-radius);
+  border: 1px solid rgba(239,68,68,.30);
+  background: rgba(239,68,68,.08);
+  color: rgba(127,29,29,.95);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+/* ===== Cards grid (3 in row) ===== */
+.movie-grid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 34px;
+}
+@media (max-width: 1200px){
+  .movie-grid{ grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 760px){
+  .movie-grid{ grid-template-columns: 1fr; }
+}
+
+/* ===== Movie card ===== */
+.movie-card{
+  background: rgba(10, 12, 18, .78);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 18px;
+  box-shadow: var(--fh-shadow);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  transition: .2s ease;
+}
+.movie-card:hover{
+  transform: translateY(-4px);
+  box-shadow: var(--fh-shadow-hover);
+  border-color: rgba(245,197,66,.18);
+}
+
+.movie-poster{
+  aspect-ratio: 2 / 3;
+  background: rgba(255,255,255,.04);
+  overflow: hidden;
+  padding: 10px;
+}
+.movie-poster img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+.movie-body{
+  padding: 16px;
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+}
+
+.movie-title{
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.25;
+  margin: 0;
+  color: rgba(255,255,255,.92);
+}
+
+.movie-sub{
+  color: var(--fh-muted);
+  font-size: .92rem;
+}
+
+.movie-meta{
+  display:flex;
+  gap: 14px;
+  align-items:center;
+  font-size: .92rem;
+  color: var(--fh-muted);
+}
+.movie-meta .bi-star-fill{ color: var(--fh-accent); }
+.movie-meta .bi-chat-dots{ color: rgba(245,197,66,.85); }
+
+
+.movie-actions{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:6px;
+}
+
+/* ===== Movie page (info + trailer) ===== */
+.movie-page{
+  display:grid;
+  gap: 28px;
+  align-items:start;
+}
+@media (max-width: 980px){
+  .movie-page{ grid-template-columns: 1fr; }
+}
+
+.movie-hero{
+  display:flex;
+  gap: 20px;
+  align-items:flex-start;
+  background: var(--fh-surface-2);
+  border: 1px solid var(--fh-border);
+  border-radius: 18px;
+  box-shadow: var(--fh-shadow);
+  padding: 18px;
+  backdrop-filter: blur(10px);
+}
+@media (max-width: 720px){
+  .movie-hero{ flex-direction:column; }
+}
+
+.poster-lg{
+  width: 320px;
+  max-width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 16px;
+  border: 1px solid rgba(15,23,42,.10);
+  background: #f1f5f9;
+}
+
+.movie-trailer{
+  position: sticky;
+  top: 96px;
+  border-radius: 18px;
+  overflow:hidden;
+  border: 1px solid var(--fh-border);
+  box-shadow: var(--fh-shadow);
+  background: #000;
+}
+.movie-trailer iframe{
+  width:100%;
+  aspect-ratio: 16 / 9;
+  border:0;
+  display:block;
+}
+
+/* blocks */
+.block{
+  margin-top: 20px;
+  background: var(--fh-surface-2);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 18px;
+  box-shadow: var(--fh-shadow);
+  padding: 18px;
+  backdrop-filter: blur(12px);
+}
+.block h2{ margin:0 0 10px; color: rgba(255,255,255,.92); }
+
+/* forms */
+textarea,
+input[type="text"],
+input[type="email"],
+input[type="password"]{
+  width:100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.14);
+  outline:none;
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.90);
+}
+textarea:focus,
+input:focus{
+  border-color: rgba(245,197,66,.55);
+  box-shadow: 0 0 0 .25rem rgba(245,197,66,.14);
+}
+
+/* comments list */
+.comment-list{
+  list-style:none;
+  padding:0;
+  margin: 12px 0 0;
+  display:grid;
+  gap: 10px;
+}
+.comment-item{
+  background: rgba(8, 10, 14, .70);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 14px;
+  padding: 12px 14px;
+  color: rgba(255,255,255,.88);
+}
+.comment-item small{ color: var(--fh-muted); }
+
+/* ===== Profile ===== */
+.profile-layout{
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 980px){
+  .profile-layout{ grid-template-columns: 1fr; }
+}
+
+.profile-side{
+  display: grid;
+  gap: 18px;
+}
+
+.profile-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.profile-badge{
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.86);
+}
+
+.profile-avatar{
+  width: 256px;
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(15,23,42,.10);
+  background: #f1f5f9;
+  position: relative;
+}
+.profile-avatar img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.profile-field{
+  margin-top: 12px;
+}
+/* label в профиле */
+.profile-field label{
+  color: rgba(255,255,255,.86);
+}
+
+.profile-help{
+  margin-top: 8px;
+  color: var(--fh-muted);
+  font-size: .92rem;
+  line-height: 1.4;
+}
+
+.profile-danger{
+  border-color: rgba(239,68,68,.18);
+}
+.profile-danger-text{
+  margin: 0 0 10px;
+  color: rgba(127,29,29,.85);
+}
+
+/* ===== File button (Profile avatar) ===== */
+.fh-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fh-file input[type="file"]{
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.fh-file-name{
+  color: var(--fh-muted);
+  font-size: .92rem;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fh-actions{
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Placeholder for empty avatar */
+.profile-avatar__ph{
+  width: 100%;
+  height: 100%;
+  min-height: 256px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+}
+.profile-avatar__ph .bi{
+  font-size: 64px;
+  opacity: .70;
+  color: rgba(245,197,66,.90);
+}
+
+
+
+
+/* ===========================
+   OVERRIDES (put at file end)
+   =========================== */
+
+/* 1) Кнопки карточек фильмов (в гриде) — зелёные */
+.movie-card .movie-actions .btn-pill,
+.movie-card .movie-actions .btn-link,
+.movie-card .movie-actions button{
+  border-color: rgba(34,197,94,.55);
+  background: rgba(34,197,94,.16);
+  color: rgba(255,255,255,.92);
+}
+.movie-card .movie-actions .btn-pill:hover,
+.movie-card .movie-actions .btn-link:hover,
+.movie-card .movie-actions button:hover{
+  background: rgba(34,197,94,.24);
+  border-color: rgba(34,197,94,.75);
+  color: rgba(255,255,255,.96);
+}
+
+/* 2) fh-userpill — другой цвет + более круглый */
+.fh-userpill{
+  border-radius: 999px; /* круглый пилл */
+  border: 1px solid rgba(56,189,248,.35);
+  background: rgba(56,189,248,.10); /* голубой/циан */
+  color: rgba(255,255,255,.90);
+  padding: 10px 14px;
+}
+
+/* 3) Movie page: btn-pill / btn-pill--accent — другим цветом (например, cyan) */
+.movie-page .btn-pill,
+.movie-page .btn-pill--accent,
+.movie-page .btn-link{
+  border-color: rgba(56,189,248,.45);
+  background: rgba(56,189,248,.12);
+  color: rgba(255,255,255,.92);
+}
+.movie-page .btn-pill:hover,
+.movie-page .btn-pill--accent:hover,
+.movie-page .btn-link:hover{
+  background: rgba(56,189,248,.18);
+  border-color: rgba(56,189,248,.70);
+  color: rgba(255,255,255,.96);
+}
+
+/* 4) Кнопка "Админка" — фиолетовая
+   Вариант А: если у ссылки есть href на /admin или текст Admin
+   (работает без изменения HTML, но зависит от структуры ссылок) */
+.fh-navlinks a[href*="/admin"],
+.fh-navlinks a[href*="admin"]{
+  border-color: rgba(168,85,247,.55);
+  background: rgba(168,85,247,.14);
+  color: rgba(255,255,255,.92);
+}
+.fh-navlinks a[href*="/admin"]:hover,
+.fh-navlinks a[href*="admin"]:hover{
+  background: rgba(168,85,247,.22);
+  border-color: rgba(168,85,247,.80);
+  color: rgba(255,255,255,.96);
+}
+
+/* (рекомендовано) Вариант B: если ты можешь добавить класc .btn-admin кнопке "Админка" */
+.btn-admin{
+  border-color: rgba(168,85,247,.55) !important;
+  background: rgba(168,85,247,.14) !important;
+  color: rgba(255,255,255,.92) !important;
+}
+.btn-admin:hover{
+  background: rgba(168,85,247,.22) !important;
+  border-color: rgba(168,85,247,.80) !important;
+  color: rgba(255,255,255,.96) !important;
+}
+
+/* 5) Выбранная оценка — белый текст (и убрать дубли) */
+.btn-pill.is-selected{
+  border-color: rgba(34,197,94,.70);
+  background: rgba(34,197,94,.22);
+  color: rgba(255,255,255,.98) !important; /* белый */
+}
+.btn-pill.is-selected:hover{
+  background: rgba(34,197,94,.28);
+  border-color: rgba(34,197,94,.85);
+  color: rgba(255,255,255,.98) !important;
+}
