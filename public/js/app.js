@@ -18,7 +18,7 @@
     err.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  // rating: highlight clicked number for instant feedback
+  // rating: highlight clicked number for instant feedback-
   const rating = document.getElementById('rating');
   if (rating) {
     rating.addEventListener('click', (e) => {
