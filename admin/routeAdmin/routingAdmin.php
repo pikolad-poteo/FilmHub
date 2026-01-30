@@ -77,6 +77,14 @@ elseif ($path == 'ratingsAdmin') {
     $response = controllerAdminUsers::ratingsList();
 }
 
+elseif ($path == 'favoriteDelete' && isset($_GET['id'])) {
+    $response = controllerAdminUsers::favoriteDelete((int)$_GET['id']);
+}
+elseif ($path == 'ratingDelete' && isset($_GET['id'])) {
+    $response = controllerAdminUsers::ratingDelete((int)$_GET['id']);
+}
+
+
 /* ===== GENRES ===== */
 elseif ($path == 'genresAdmin') {
     $response = controllerAdminUsers::genresList();

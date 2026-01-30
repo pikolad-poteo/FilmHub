@@ -105,6 +105,36 @@ class controllerAdminUsers
         $arr = modelAdminUsers::getAllUsers();
         self::view('usersList.php', compact('arr'));
     }
+    
+    public static function favoriteDelete(int $id): void
+{
+    self::requireAdmin();
+
+    $id = (int)$id;
+    if ($id > 0) {
+        modelAdminFavorites::deleteById($id);
+    }
+
+    $qs = $_GET ?? [];
+    unset($qs['id']);
+    $back = 'favoritesAdmin' . (!empty($qs) ? ('?' . http_build_query($qs)) : '');
+    self::redirect($back);
+}
+
+public static function ratingDelete(int $id): void
+{
+    self::requireAdmin();
+
+    $id = (int)$id;
+    if ($id > 0) {
+        modelAdminRatings::deleteById($id);
+    }
+
+    $qs = $_GET ?? [];
+    unset($qs['id']);
+    $back = 'ratingsAdmin' . (!empty($qs) ? ('?' . http_build_query($qs)) : '');
+    self::redirect($back);
+}
 
     /* ===== COMMENTS LIST ===== */
     public static function commentsList(): void

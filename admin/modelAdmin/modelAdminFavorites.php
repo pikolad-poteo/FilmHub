@@ -13,4 +13,13 @@ class modelAdminFavorites
             ORDER BY f.id DESC
         ");
     }
+        public static function deleteById(int $id): bool {
+        $db = new Database();
+        try {
+            $db->executeRun("DELETE FROM favorites WHERE id = :id LIMIT 1", [':id' => $id]);
+            return true;
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
 }
