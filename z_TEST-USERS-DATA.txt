@@ -1,0 +1,19 @@
+--------------Данные для пользователей-------------
+DEV ACCOUNTS – LOCAL ONLY
+
+ADMIN
+login: admin
+email: admin@filmhub.local
+password: Admin!2345
+role: admin
+
+USER
+login: vlad
+email: vlad@filmhub.local
+password: Vlad!2345
+role: user
+
+
+Admin!2345
+
+Vlad!2345

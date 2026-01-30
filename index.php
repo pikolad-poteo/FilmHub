@@ -4,7 +4,7 @@ declare(strict_types=1);
 session_start();
 
 require_once __DIR__ . '/inc/Database.php';
-require_once __DIR__ . '/inc/media.php'; // ✅ ЕДИНАЯ система ассетов/постеров
+require_once __DIR__ . '/inc/media.php';
 
 // Models
 require_once __DIR__ . '/model/BaseModel.php';
@@ -18,5 +18,5 @@ require_once __DIR__ . '/model/UserModel.php';
 // Controller
 require_once __DIR__ . '/controller/controller.php';
 
-// Routing (последним)
+// Routing
 require_once __DIR__ . '/route/routing.php';
