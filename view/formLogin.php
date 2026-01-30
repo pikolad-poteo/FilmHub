@@ -22,4 +22,4 @@ ob_start();
 
 <?php
 $content = ob_get_clean();
-require __DIR__ . '/templates/alayout.php';
+require __DIR__ . '/templates/layout.php';
